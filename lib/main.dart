@@ -1,4 +1,3 @@
-
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
@@ -20,7 +19,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 
 // --- 計算ロジック・履歴管理 ---
 class CalculatorLogic {
@@ -82,8 +80,6 @@ class CalculatorPage extends StatefulWidget {
 }
 
 class _CalculatorPageState extends State<CalculatorPage> {
-
-
   final NumberFormat _numberFormat = NumberFormat('#,##0.##');
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
@@ -169,7 +165,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
       }
       if (value == '⏏' || value == '=') {
         try {
-          String expression = _display.replaceAll('×', '*').replaceAll('÷', '/');
+          String expression =
+              _display.replaceAll('×', '*').replaceAll('÷', '/');
           if (RegExp(r'[\+\-\*/]$').hasMatch(expression)) {
             expression = expression.substring(0, expression.length - 1);
           }
@@ -178,11 +175,13 @@ class _CalculatorPageState extends State<CalculatorPage> {
             return;
           }
           double result = CalculatorLogic.calculate(expression);
-          String resultStr = result.toString().replaceAll(RegExp(r'\.0+\u0000?$'), '');
+          String resultStr =
+              result.toString().replaceAll(RegExp(r'\.0+\u0000?$'), '');
           _history.add('$_display = $resultStr');
           if (_listKey.currentState != null) {
             const animDuration = Duration(milliseconds: 120);
-            _listKey.currentState!.insertItem(_history.length - 1, duration: animDuration);
+            _listKey.currentState!
+                .insertItem(_history.length - 1, duration: animDuration);
             Future.delayed(animDuration, () {
               if (_scrollController.hasClients) {
                 _scrollController.animateTo(
@@ -202,7 +201,10 @@ class _CalculatorPageState extends State<CalculatorPage> {
         if (value == '×') inputValue = '*';
         if (value == '÷') inputValue = '/';
         if ('+-*/'.contains(inputValue)) {
-          if (_display.endsWith('+') || _display.endsWith('-') || _display.endsWith('*') || _display.endsWith('/')) {
+          if (_display.endsWith('+') ||
+              _display.endsWith('-') ||
+              _display.endsWith('*') ||
+              _display.endsWith('/')) {
             _display = _display.substring(0, _display.length - 1) + inputValue;
             return;
           }
@@ -219,7 +221,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
         }
         if (_display == '0' && RegExp(r'[0-9]').hasMatch(value)) {
           _display = value;
-        } else if (_display == '0' && value != '.' && !RegExp(r'[0-9]').hasMatch(value)) {
+        } else if (_display == '0' &&
+            value != '.' &&
+            !RegExp(r'[0-9]').hasMatch(value)) {
           _display = inputValue;
         } else {
           _display += inputValue;
@@ -243,7 +247,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final sum = CalculatorLogic.totalSum(_history);
     final sumStr = _numberFormat.format(sum);
     return Scaffold(
-  backgroundColor: Colors.grey[600],
+      backgroundColor: Colors.grey[600],
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Row(
@@ -284,7 +288,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     children: [
                       Icon(Icons.delete_sweep, color: Colors.redAccent),
                       const SizedBox(width: 12),
-                      const Text('Flush', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('Flush',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -294,13 +299,15 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     children: [
                       Icon(Icons.undo, color: Colors.blueAccent),
                       const SizedBox(width: 12),
-                      const Text('Return', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text('Return',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
               ],
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.blueGrey.shade50,
                   borderRadius: BorderRadius.circular(12),
@@ -312,13 +319,17 @@ class _CalculatorPageState extends State<CalculatorPage> {
                     ),
                   ],
                 ),
-                constraints: const BoxConstraints(minHeight: 0, maxHeight: kToolbarHeight - 8),
+                constraints: const BoxConstraints(
+                    minHeight: 0, maxHeight: kToolbarHeight - 8),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: Text(
                     sumStr,
-                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: const TextStyle(
+                        fontSize: 44,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87),
                   ),
                 ),
               ),
@@ -342,10 +353,14 @@ class _CalculatorPageState extends State<CalculatorPage> {
             display: _display,
             onClear: () => setState(() => _display = ''),
           ),
-          ButtonPad(
-            buttons: _buttons,
-            onPressed: _onButtonPressed,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ButtonPad(
+              buttons: _buttons,
+              onPressed: _onButtonPressed,
+            ),
           ),
+          const SizedBox(height: 24), // ボタンパネル下にスペース追加
         ],
       ),
     );
@@ -404,7 +419,10 @@ class DisplayPanel extends StatelessWidget {
                 display.isEmpty
                     ? ''
                     : display.replaceAll('*', '×').replaceAll('/', '÷'),
-                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
             ),
           ),
@@ -423,22 +441,22 @@ class ButtonPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: buttons.map((row) =>
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: row.map((buttonText) {
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: AnimatedButton(
-                  buttonText: buttonText,
-                  onPressed: onPressed,
-                ),
-              ),
-            );
-          }).toList(),
-        )
-      ).toList(),
+      children: buttons
+          .map((row) => Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: row.map((buttonText) {
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: AnimatedButton(
+                        buttonText: buttonText,
+                        onPressed: onPressed,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ))
+          .toList(),
     );
   }
 }
@@ -446,7 +464,8 @@ class ButtonPad extends StatelessWidget {
 class AnimatedButton extends StatefulWidget {
   final String buttonText;
   final void Function(String) onPressed;
-  const AnimatedButton({super.key, required this.buttonText, required this.onPressed});
+  const AnimatedButton(
+      {super.key, required this.buttonText, required this.onPressed});
 
   @override
   State<AnimatedButton> createState() => _AnimatedButtonState();
@@ -592,14 +611,17 @@ class HistoryList extends StatelessWidget {
 class HistoryCard extends StatelessWidget {
   final String item;
   final NumberFormat numberFormat;
-  const HistoryCard({super.key, required this.item, required this.numberFormat});
+  const HistoryCard(
+      {super.key, required this.item, required this.numberFormat});
 
   @override
   Widget build(BuildContext context) {
     final match = RegExp(r'^(.*)=\s*(-?\d+(?:\.\d+)?)').firstMatch(item);
     final expr = match != null ? match.group(1)?.trim() ?? '' : item;
     final subtotal = match != null ? match.group(2) ?? '' : '';
-    final subtotalStr = subtotal.isEmpty ? '' : numberFormat.format(double.tryParse(subtotal) ?? 0);
+    final subtotalStr = subtotal.isEmpty
+        ? ''
+        : numberFormat.format(double.tryParse(subtotal) ?? 0);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
@@ -626,7 +648,10 @@ class HistoryCard extends StatelessWidget {
               ),
               Text(
                 subtotalStr,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
                 textAlign: TextAlign.right,
               ),
             ],
