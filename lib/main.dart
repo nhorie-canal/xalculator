@@ -1,7 +1,14 @@
-import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import './ad_banner_widget.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
   runApp(const MyApp());
 }
 
@@ -11,6 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Xalculator',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -89,7 +97,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
     ['7', '8', '9', '÷'],
     ['4', '5', '6', '×'],
     ['1', '2', '3', '-'],
-    ['0', '.', '⏏', '+'],
+    ['0', '.', '=', '+'],
   ];
 
   void _removeAllHistory() {
@@ -131,7 +139,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
           i,
           (context, animation) => SlideTransition(
             position: Tween<Offset>(
-              begin: const Offset(-1, 0),
+              begin: const Offset(1, 0),
               end: Offset.zero,
             ).animate(animation),
             child: FadeTransition(
@@ -242,6 +250,18 @@ class _CalculatorPageState extends State<CalculatorPage> {
     );
   }
 
+  void _copyHistoryItemToDisplay(int index) {
+    if (index < 0 || index >= _history.length) return;
+    final item = _history[index];
+    final match = RegExp(r'=\s*(-?\d+(?:\.\d+)?)').firstMatch(item);
+    if (match != null) {
+      final value = match.group(1) ?? '';
+      setState(() {
+        _display = value;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sum = CalculatorLogic.totalSum(_history);
@@ -260,7 +280,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 child: AspectRatio(
                   aspectRatio: 1.0,
                   child: Image.asset(
-                    'assets/img/xalculator.png',
+                    'assets/img/Xalculator_alpha.png',
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -297,9 +317,9 @@ class _CalculatorPageState extends State<CalculatorPage> {
                   value: 2,
                   child: Row(
                     children: [
-                      Icon(Icons.undo, color: Colors.blueAccent),
+                      Icon(Icons.playlist_add_check, color: Colors.blueAccent),
                       const SizedBox(width: 12),
-                      const Text('Return',
+                      const Text('Total',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -347,6 +367,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
               scrollController: _scrollController,
               numberFormat: _numberFormat,
               onRemove: (index) => setState(() => _removeHistoryItem(index)),
+              onCopy: (index) => _copyHistoryItemToDisplay(index),
             ),
           ),
           DisplayPanel(
@@ -360,7 +381,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
               onPressed: _onButtonPressed,
             ),
           ),
-          const SizedBox(height: 24), // ボタンパネル下にスペース追加
+          if (!kIsWeb) const AdBannerWidget(), // 広告を追加
         ],
       ),
     );
@@ -488,7 +509,7 @@ class _AnimatedButtonState extends State<AnimatedButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isPop = widget.buttonText == '⏏';
+    final isEquals = widget.buttonText == '=';
     return GestureDetector(
       onTap: () => widget.onPressed(widget.buttonText),
       onTapDown: _onTapDown,
@@ -500,7 +521,7 @@ class _AnimatedButtonState extends State<AnimatedButton> {
         curve: Curves.easeOut,
         child: Container(
           decoration: BoxDecoration(
-            gradient: isPop
+            gradient: isEquals
                 ? const LinearGradient(
                     colors: [Color(0xFFFFA726), Color(0xFFFF9800)],
                     begin: Alignment.topLeft,
@@ -520,7 +541,7 @@ class _AnimatedButtonState extends State<AnimatedButton> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.25),
-                blurRadius: isPop ? 12 : 8,
+                blurRadius: isEquals ? 12 : 8,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -529,20 +550,20 @@ class _AnimatedButtonState extends State<AnimatedButton> {
           height: 56,
           padding: const EdgeInsets.symmetric(vertical: 0),
           child: Center(
-            child: isPop
-                ? Icon(Icons.eject, size: 32, color: Colors.white)
-                : Text(
-                    widget.buttonText,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: '+-×÷'.contains(widget.buttonText)
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: '+-×÷'.contains(widget.buttonText)
-                          ? Colors.blue.shade900
-                          : Colors.black,
-                    ),
-                  ),
+            child: Text(
+              widget.buttonText,
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: '+-×÷='.contains(widget.buttonText)
+                    ? FontWeight.bold
+                    : FontWeight.normal,
+                color: isEquals
+                    ? Colors.white
+                    : '+-×÷'.contains(widget.buttonText)
+                        ? Colors.blue.shade900
+                        : Colors.black,
+              ),
+            ),
           ),
         ),
       ),
@@ -557,6 +578,7 @@ class HistoryList extends StatelessWidget {
   final ScrollController scrollController;
   final NumberFormat numberFormat;
   final void Function(int) onRemove;
+  final void Function(int) onCopy;
   const HistoryList({
     super.key,
     required this.history,
@@ -564,6 +586,7 @@ class HistoryList extends StatelessWidget {
     required this.scrollController,
     required this.numberFormat,
     required this.onRemove,
+    required this.onCopy,
   });
 
   @override
@@ -586,14 +609,28 @@ class HistoryList extends StatelessWidget {
               ).animate(animation),
               child: Dismissible(
                 key: Key(item + index.toString()),
-                direction: DismissDirection.endToStart,
+                direction: DismissDirection.horizontal,
                 background: Container(
+                  color: Colors.green,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.input, color: Colors.white, size: 32),
+                ),
+                secondaryBackground: Container(
                   color: Colors.red,
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  child:
+                      const Icon(Icons.delete, color: Colors.white, size: 32),
                 ),
-                onDismissed: (direction) => onRemove(index),
+                onDismissed: (direction) {
+                  if (direction == DismissDirection.startToEnd) {
+                    // 右スワイプ: コピーして削除
+                    onCopy(index);
+                  }
+                  // 両方向とも削除
+                  onRemove(index);
+                },
                 child: HistoryCard(
                   item: item,
                   numberFormat: numberFormat,
@@ -661,3 +698,4 @@ class HistoryCard extends StatelessWidget {
     );
   }
 }
+// --- AdMob Widget ---

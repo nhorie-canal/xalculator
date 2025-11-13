@@ -1,4 +1,4 @@
-package com.example.xalculator
+package jp.spheres.xalculator
 
 import io.flutter.embedding.android.FlutterActivity
 
