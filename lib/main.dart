@@ -130,31 +130,40 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
   void _removeAllAndCopyToDisplay() {
     final sum = CalculatorLogic.totalSum(_history);
-    _display = sum == 0 ? '' : sum.toString();
-    if (_history.isNotEmpty) {
-      final len = _history.length;
-      for (int i = len - 1; i >= 0; i--) {
-        final item = _history[i];
-        _listKey.currentState?.removeItem(
-          i,
-          (context, animation) => SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(animation),
-            child: FadeTransition(
-              opacity: animation,
-              child: HistoryCard(
-                item: item,
-                numberFormat: _numberFormat,
+    String sumStr = (sum % 1 == 0) ? sum.toInt().toString() : sum.toString();
+    setState(() {
+      if (sum == 0) {
+        _display = '';
+      } else if (_display.isEmpty || _display == '0' || _display == 'Error') {
+        _display = sumStr;
+      } else if (RegExp(r'[+\-*/]$').hasMatch(_display)) {
+        _display += sumStr;
+      } else {
+        _display += '+$sumStr';
+      }
+      if (_history.isNotEmpty) {
+        final len = _history.length;
+        for (int i = len - 1; i >= 0; i--) {
+          final item = _history[i];
+          _listKey.currentState?.removeItem(
+            i,
+            (context, animation) => SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: FadeTransition(
+                opacity: animation,
+                child: HistoryCard(
+                  item: item,
+                  numberFormat: _numberFormat,
+                ),
               ),
             ),
-          ),
-          duration: const Duration(milliseconds: 350),
-        );
+            duration: const Duration(milliseconds: 350),
+          );
+        }
       }
-    }
-    setState(() {
       _history.clear();
     });
   }
@@ -183,8 +192,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
             return;
           }
           double result = CalculatorLogic.calculate(expression);
-          String resultStr =
-              result.toString().replaceAll(RegExp(r'\.0+\u0000?$'), '');
+          String resultStr = (result % 1 == 0) ? result.toInt().toString() : result.toString();
           _history.add('$_display = $resultStr');
           if (_listKey.currentState != null) {
             const animDuration = Duration(milliseconds: 120);
@@ -255,17 +263,27 @@ class _CalculatorPageState extends State<CalculatorPage> {
     final item = _history[index];
     final match = RegExp(r'=\s*(-?\d+(?:\.\d+)?)').firstMatch(item);
     if (match != null) {
-      final value = match.group(1) ?? '';
+      String value = match.group(1) ?? '';
+      if (double.tryParse(value) != null) {
+        double d = double.parse(value);
+        value = (d % 1 == 0) ? d.toInt().toString() : d.toString();
+      }
       setState(() {
-        _display = value;
+        if (_display.isEmpty || _display == '0' || _display == 'Error') {
+          _display = value;
+        } else if (RegExp(r'[+\-*/]$').hasMatch(_display)) {
+          _display += value;
+        } else {
+          _display += '+$value';
+        }
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final sum = CalculatorLogic.totalSum(_history);
-    final sumStr = _numberFormat.format(sum);
+  final sum = CalculatorLogic.totalSum(_history);
+  final sumStr = _numberFormat.format((sum % 1 == 0) ? sum.toInt() : sum);
     return Scaffold(
       backgroundColor: Colors.grey[600],
       appBar: AppBar(
@@ -286,45 +304,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
                 ),
               ),
             ),
-            PopupMenuButton<int>(
-              tooltip: 'メニュー',
-              offset: const Offset(0, 40),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: Colors.white,
-              elevation: 12,
-              onSelected: (selected) {
-                if (selected == 1) {
-                  _removeAllHistory();
-                } else if (selected == 2) {
-                  _removeAllAndCopyToDisplay();
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem<int>(
-                  value: 1,
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_sweep, color: Colors.redAccent),
-                      const SizedBox(width: 12),
-                      const Text('Flush',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<int>(
-                  value: 2,
-                  child: Row(
-                    children: [
-                      Icon(Icons.playlist_add_check, color: Colors.blueAccent),
-                      const SizedBox(width: 12),
-                      const Text('Total',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
+            GestureDetector(
+              onTap: _removeAllAndCopyToDisplay,
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -655,10 +636,11 @@ class HistoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final match = RegExp(r'^(.*)=\s*(-?\d+(?:\.\d+)?)').firstMatch(item);
     final expr = match != null ? match.group(1)?.trim() ?? '' : item;
-    final subtotal = match != null ? match.group(2) ?? '' : '';
-    final subtotalStr = subtotal.isEmpty
-        ? ''
-        : numberFormat.format(double.tryParse(subtotal) ?? 0);
+  final subtotal = match != null ? match.group(2) ?? '' : '';
+  double? subtotalNum = double.tryParse(subtotal);
+  final subtotalStr = subtotal.isEmpty
+    ? ''
+    : numberFormat.format((subtotalNum != null && subtotalNum % 1 == 0) ? subtotalNum.toInt() : subtotalNum ?? 0);
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
